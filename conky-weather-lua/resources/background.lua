@@ -22,6 +22,7 @@ else
 end
 
 conky_vars()
+
 -- Selecteer de kleur op basis van de variabele uit settings.lua
 local color_options = {
     green = { {0, 0x003E00, 1}, {0.5, 0x03F404, 1}, {1, 0x003E00, 1} },
@@ -33,18 +34,28 @@ local color_options = {
 
 local bgcolor_options = {
     black = { {1, 0x000000, 0.5} },
-    blue = { {1, 0x0000ba, 0.5} }
+    blue = { {1, 0x0000ba, 0.5} },
+    white = { {1, 0xffffff, 0.5} }
 }
 
 local border_color = color_options[border_COLOR] or color_options.green  -- standaard naar groen als border_COLOR niet bestaat
-local bg_color = bgcolor_options[bg_COLOR] or bgcolor_options.black      -- standaard naar zwart als bg_COLOR niet bestaat
+local bg_color = bgcolor_options[background_COLOR] or bgcolor_options.black  -- standaard naar zwart als bg_COLOR niet bestaat
 
 local boxes_settings = {
-    -- Base background
+    -- background
     {
-        type = "base",
+        type = "background",
         x = 5, y = 5, w = 520, h = 180,
         colour = bg_color,
+        corners = { {"circle", 10} },
+        draw_me = true,
+    },
+    -- Second background layer with linear gradient
+    {
+        type = "layer2",
+        x = 5, y = 5, w = 520, h = 180,
+        linear_gradient = {0, 90, 520, 90},  -- Linear gradient from left to right
+        colours = { {0, 0x000000, 0.5}, {0.3, 0x0000ba, 0.5}, {0.7, 0x0000ba, 0.5}, {1, 0x000000, 0.5} },
         corners = { {"circle", 10} },
         draw_me = true,
     },
@@ -85,11 +96,21 @@ function conky_draw_background()
 
     for _, box in ipairs(boxes_settings) do
         if box.draw_me then
-            if box.type == "base" then
+            if box.type == "background" then
                 -- Teken de achtergrond
                 cairo_set_source_rgba(cr, ((box.colour[1][2] & 0xFF0000) >> 16) / 255, ((box.colour[1][2] & 0x00FF00) >> 8) / 255, (box.colour[1][2] & 0x0000FF) / 255, box.colour[1][3])
                 draw_rounded_rectangle(cr, box.x, box.y, box.w, box.h, box.corners[1][2])
                 cairo_fill(cr)
+            elseif box.type == "layer2" then
+                -- Teken de tweede laag met lineaire gradient
+                local gradient = cairo_pattern_create_linear(table.unpack(box.linear_gradient))
+                for _, color in ipairs(box.colours) do
+                    cairo_pattern_add_color_stop_rgba(gradient, color[1], ((color[2] & 0xFF0000) >> 16) / 255, ((color[2] & 0x00FF00) >> 8) / 255, (color[2] & 0x0000FF) / 255, color[3])
+                end
+                cairo_set_source(cr, gradient)
+                draw_rounded_rectangle(cr, box.x, box.y, box.w, box.h, box.corners[1][2])
+                cairo_fill(cr)
+                cairo_pattern_destroy(gradient)
             elseif box.type == "border" then
                 -- Teken de rand met kleurverloop
                 local gradient = cairo_pattern_create_linear(table.unpack(box.linear_gradient))
