@@ -1,4 +1,4 @@
--- background.lua
+-- background.lua v1.5
 -- by @wim66
 -- June 10 2024
 
@@ -46,8 +46,8 @@ local boxes_settings = {
     {
         type = "background",
         x = 10, y = 5, w = 200, h = 200,
-        centre_x = true,
-        colour = bg_color,
+        centre_x = true, -- centres on conky_window.width
+        colour = bg_color, -- value from settings.lua
         corners = { {"circle", 100} },
         draw_me = true,
     },
@@ -55,9 +55,10 @@ local boxes_settings = {
     {
         type = "layer2",
         x = 0, y = 210, w = 340, h = 210,
-        centre_x = true,
-        linear_gradient = {0, 0, 340, 0},  -- Linear gradient from left to right
-        colours = { {0, 0x000000, 0.5}, {0.3, 0x000000, 0.5}, {0.7, 0x000000, 0.5}, {1, 0x000000, 0.5} },
+        centre_x = true, -- centres on conky_window.width
+        scale_width = true, -- auto scales to conky_window.width
+        linear_gradient = {0, 210, 0, 420},  -- Linear gradient from left to right
+        colours = { {0, 0x000000, 0.66}, {0.5, 0x0000FF, 0.66}, {0.5, 0x0000FF, 0.66}, {1, 0x000000, 0.66} },
         corners = { {"circle", 10} },
         draw_me = true,
     },
@@ -65,8 +66,8 @@ local boxes_settings = {
     {
         type = "border",
         x = 80, y = 5, w = 200, h = 200,
-        centre_x = true,
-        colour = border_color,
+        centre_x = true, -- centres on conky_window.width
+        colour = border_color, -- value from settings.lua
         linear_gradient = {100, 0, 100, 200},
         corners = { {"circle", 100} },
         border = 8,
@@ -107,6 +108,7 @@ function conky_draw_background()
     for _, box in ipairs(boxes_settings) do
         if box.draw_me then
             local x = box.x
+            local w = box.w
             if box.centre_x then
                 x = get_centered_x(canvas_width, box.w)
             end
@@ -116,13 +118,18 @@ function conky_draw_background()
                 draw_rounded_rectangle(cr, x, box.y, box.w, box.h, box.corners[1][2])
                 cairo_fill(cr)
             elseif box.type == "layer2" then
+                -- Schaal de breedte van layer2 indien nodig
+                if box.scale_width then
+                    w = canvas_width
+                    x = 0
+                end
                 -- Teken de tweede laag met lineaire gradient
                 local gradient = cairo_pattern_create_linear(table.unpack(box.linear_gradient))
                 for _, color in ipairs(box.colours) do
                     cairo_pattern_add_color_stop_rgba(gradient, color[1], ((color[2] & 0xFF0000) >> 16) / 255, ((color[2] & 0x00FF00) >> 8) / 255, (color[2] & 0x0000FF) / 255, color[3])
                 end
                 cairo_set_source(cr, gradient)
-                draw_rounded_rectangle(cr, x, box.y, box.w, box.h, box.corners[1][2])
+                draw_rounded_rectangle(cr, x, box.y, w, box.h, box.corners[1][2])
                 cairo_fill(cr)
                 cairo_pattern_destroy(gradient)
             elseif box.type == "border" then

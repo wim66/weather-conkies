@@ -9,7 +9,7 @@ function conky_vars()
     LANG = "en"
 
     border_COLOR = "orange"  -- options, green, orange, blue, black, red
-    bg_COLOR = "black"      -- options black, blue
+    background_COLOR = "black"      -- options black, blue
     --- Border and background can be disabled in background.lua (draw_me = true or false)
 
 end
