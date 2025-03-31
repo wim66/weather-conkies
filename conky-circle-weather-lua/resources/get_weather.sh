@@ -20,17 +20,7 @@ WEATHER_RESPONSE=$(curl -s "http://api.openweathermap.org/data/2.5/weather?id=$C
 # Create cache directory if it does not exist
 mkdir -p "$CACHE_DIR"
 
-# Parse JSON response
-CITY=$(echo "$WEATHER_RESPONSE" | jq -r .name)
-WEATHER_ICON=$(echo "$WEATHER_RESPONSE" | jq -r '.weather[0].icon')
-WEATHER_DESC=$(echo "$WEATHER_RESPONSE" | jq -r '.weather[0].description')
-TEMP=$(echo "$WEATHER_RESPONSE" | jq -r '.main.temp')
-TEMP_MIN=$(echo "$WEATHER_RESPONSE" | jq -r '.main.temp_min')
-TEMP_MAX=$(echo "$WEATHER_RESPONSE" | jq -r '.main.temp_max')   
-HUMIDITY=$(echo "$WEATHER_RESPONSE" | jq -r '.main.humidity') 
-WIND_SPEED=$(echo "$WEATHER_RESPONSE" | jq -r '.wind.speed')
-
-# Translation function for weather descriptions (optional, not currently used)
+# Translation function for weather descriptions
 translate_weather() {
     local desc="$1"
     case "$desc" in
@@ -46,6 +36,17 @@ translate_weather() {
             ;;
     esac
 }
+
+# Parse JSON response
+CITY=$(echo "$WEATHER_RESPONSE" | jq -r .name)
+WEATHER_ICON=$(echo "$WEATHER_RESPONSE" | jq -r '.weather[0].icon')
+WEATHER_DESC=$(echo "$WEATHER_RESPONSE" | jq -r '.weather[0].description')
+WEATHER_DESC=$(translate_weather "$WEATHER_DESC")  # Apply translation
+TEMP=$(echo "$WEATHER_RESPONSE" | jq -r '.main.temp')
+TEMP_MIN=$(echo "$WEATHER_RESPONSE" | jq -r '.main.temp_min')
+TEMP_MAX=$(echo "$WEATHER_RESPONSE" | jq -r '.main.temp_max')   
+HUMIDITY=$(echo "$WEATHER_RESPONSE" | jq -r '.main.humidity') 
+WIND_SPEED=$(echo "$WEATHER_RESPONSE" | jq -r '.wind.speed')
 
 # Remove decimal places from temperatures
 TEMP=${TEMP%.*}
