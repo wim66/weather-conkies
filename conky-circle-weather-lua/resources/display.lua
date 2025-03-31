@@ -1,7 +1,7 @@
 --[[
  conky-circle-weather-lua  display.lua   
  by @wim66    
- v2 10-June-2024       
+ v2.1 31-march-2025       
 ]]
 require 'cairo'
 
@@ -15,6 +15,8 @@ local function get_labels(lang)
         return { humidity = "Humidité", wind_speed = "Vitesse du vent" }
     elseif lang == "es" then
         return { humidity = "Humedad", wind_speed = "Velocidad del viento" }
+    elseif lang == "de" then
+        return { humidity = "Luftfeuchtigkeit", wind_speed = "Windgeschwindigkeit" }
     else
         return { humidity = "Humidity", wind_speed = "Wind Speed" } -- Fallback to English
     end
