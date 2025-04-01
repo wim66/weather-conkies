@@ -1,26 +1,31 @@
 #!/bin/bash
 
-# get_weather.sh v1.2
+# get_weather.sh v1.3
 # by @wim66
-# June 12 2024
+# April 1 2025
 
-# Determine the path to the script and its folders
+# Determine script path and directories
 SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
 WEATHER_DATA="$SCRIPT_DIR/weather_data"
 CACHE_DIR="$SCRIPT_DIR/cache"
 ICON_DIR="$SCRIPT_DIR/weather-icons/dark/SagiSan"
 
-# Load variables from settings.lua
+# Load API configuration from settings.lua
 API_KEY=$(lua -e 'require("settings"); conky_vars(); print(API_KEY)')
 CITY_ID=$(lua -e 'require("settings"); conky_vars(); print(CITY_ID)')
 UNITS=$(lua -e 'require("settings"); conky_vars(); print(UNITS)')
 LANG=$(lua -e 'require("settings"); conky_vars(); print(LANG)')
+
+# Fetch weather data from OpenWeatherMap API
 WEATHER_RESPONSE=$(curl -s "http://api.openweathermap.org/data/2.5/weather?id=$CITY_ID&appid=$API_KEY&units=$UNITS&lang=$LANG")
 
-# Create cache directory if it does not exist
-mkdir -p "$CACHE_DIR"
+# Check if API request was successful
+if echo "$WEATHER_RESPONSE" | jq -e '.cod // 0' | grep -qE '4[0-9][0-9]'; then
+    echo "Error: Unable to fetch weather data." >&2
+    exit 1
+fi
 
-# Translation function for weather descriptions
+# Function to translate weather descriptions
 translate_weather() {
     local desc="$1"
     case "$desc" in
@@ -41,19 +46,19 @@ translate_weather() {
 CITY=$(echo "$WEATHER_RESPONSE" | jq -r .name)
 WEATHER_ICON=$(echo "$WEATHER_RESPONSE" | jq -r '.weather[0].icon')
 WEATHER_DESC=$(echo "$WEATHER_RESPONSE" | jq -r '.weather[0].description')
-WEATHER_DESC=$(translate_weather "$WEATHER_DESC")  # Apply translation
+WEATHER_DESC=$(translate_weather "$WEATHER_DESC")
 TEMP=$(echo "$WEATHER_RESPONSE" | jq -r '.main.temp')
 TEMP_MIN=$(echo "$WEATHER_RESPONSE" | jq -r '.main.temp_min')
-TEMP_MAX=$(echo "$WEATHER_RESPONSE" | jq -r '.main.temp_max')   
-HUMIDITY=$(echo "$WEATHER_RESPONSE" | jq -r '.main.humidity') 
+TEMP_MAX=$(echo "$WEATHER_RESPONSE" | jq -r '.main.temp_max')
+HUMIDITY=$(echo "$WEATHER_RESPONSE" | jq -r '.main.humidity')
 WIND_SPEED=$(echo "$WEATHER_RESPONSE" | jq -r '.wind.speed')
 
-# Remove decimal places from temperatures
-TEMP=${TEMP%.*}
-TEMP_MIN=${TEMP_MIN%.*}
-TEMP_MAX=${TEMP_MAX%.*}
+# Remove decimal places correctly
+TEMP=$(LC_NUMERIC=C printf "%.0f" "$TEMP")
+TEMP_MIN=$(LC_NUMERIC=C printf "%.0f" "$TEMP_MIN")
+TEMP_MAX=$(LC_NUMERIC=C printf "%.0f" "$TEMP_MAX")
 
-# Append temperature units based on UNITS setting
+# Append temperature unit based on the UNITS setting
 if [ "$UNITS" = "metric" ]; then
     TEMP="${TEMP}°C"
     TEMP_MIN="${TEMP_MIN}°C"
@@ -64,16 +69,22 @@ elif [ "$UNITS" = "imperial" ]; then
     TEMP_MAX="${TEMP_MAX}°F"
 fi
 
-# Copy the weather icon to the cache directory
-cp "${ICON_DIR}/${WEATHER_ICON}.png" "${CACHE_DIR}/weathericon.png"
+# Check if the weather icon file exists before copying
+ICON_PATH="${ICON_DIR}/${WEATHER_ICON}.png"
+if [ -f "$ICON_PATH" ]; then
+    cp "$ICON_PATH" "${CACHE_DIR}/weathericon.png"
+else
+    echo "Warning: Icon $ICON_PATH not found!" >&2
+fi
 
-# Save the weather data to file
-echo "CITY=${CITY}" > "$WEATHER_DATA"
-echo "LANG=${LANG}" >> "$WEATHER_DATA"
-echo "WEATHER_DESC=${WEATHER_DESC}" >> "$WEATHER_DATA"
-echo "TEMP=${TEMP}" >> "$WEATHER_DATA"
-echo "TEMP_MIN=${TEMP_MIN}" >> "$WEATHER_DATA"
-echo "TEMP_MAX=${TEMP_MAX}" >> "$WEATHER_DATA"
-echo "HUMIDITY=${HUMIDITY}" >> "$WEATHER_DATA"
-echo "WIND_SPEED=${WIND_SPEED}" >> "$WEATHER_DATA"
-echo "$WEATHER_RESPONSE" >> "$WEATHER_DATA"
+# Write weather data to file
+cat <<EOF > "$WEATHER_DATA"
+CITY=$CITY
+LANG=$LANG
+WEATHER_DESC=$WEATHER_DESC
+TEMP=$TEMP
+TEMP_MIN=$TEMP_MIN
+TEMP_MAX=$TEMP_MAX
+HUMIDITY=$HUMIDITY
+WIND_SPEED=$WIND_SPEED
+EOF
