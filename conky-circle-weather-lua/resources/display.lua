@@ -4,6 +4,7 @@
  v2.1 31-march-2025       
 ]]
 require 'cairo'
+require 'cairo_xlib'
 
 -- Function to select labels based on language
 local function get_labels(lang)

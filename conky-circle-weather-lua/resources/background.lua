@@ -2,6 +2,9 @@
 -- by @wim66
 -- June 10 2024
 
+require 'cairo'
+require 'cairo_xlib'
+
 -- Determine the script's directory and set the path to load settings.lua from the parent directory
 local script_path = debug.getinfo(1, 'S').source:match[[^@?(.*[\/])[^\/]-$]]
 local parent_path = script_path:match("^(.*[\\/])resources[\\/].*$")
